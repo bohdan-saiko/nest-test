@@ -21,9 +21,38 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+## Projects API
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+`ProjectsModule` exposes an in-memory CRUD API at `/projects`:
+
+| Method | Route | Action |
+| --- | --- | --- |
+| `POST` | `/projects` | Create a project |
+| `GET` | `/projects` | List projects |
+| `GET` | `/projects/:id` | Get one project |
+| `PATCH` | `/projects/:id` | Update a project |
+| `DELETE` | `/projects/:id` | Delete a project |
+
+Request bodies for create accept `name` and `description`; update accepts either
+field. Data is kept in memory, so it is reset when the application restarts.
+
+### Dependency graph
+
+```text
+HTTP request
+    |
+ProjectsController (HTTP mapping only)
+    |
+ProjectsService (use cases and not-found handling)
+    |
+ProjectsRepositoryPort / PROJECTS_REPOSITORY
+    |
+InMemoryProjectsRepository (persistence adapter)
+```
+
+The controller has no persistence dependency and does not contain business
+rules. Replacing the storage mechanism only requires another implementation of
+`ProjectsRepositoryPort` bound to `PROJECTS_REPOSITORY` in `ProjectsModule`.
 
 ## Project setup
 

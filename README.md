@@ -33,8 +33,17 @@
 | `PATCH` | `/projects/:id` | Update a project |
 | `DELETE` | `/projects/:id` | Delete a project |
 
-Request bodies for create accept `name` and `description`; update accepts either
-field. Data is kept in memory, so it is reset when the application restarts.
+`POST` accepts `name` (3–100 characters), optional `description` (up to 500
+characters), and `status` (`draft`, `active`, or `completed`). `PATCH` accepts
+any subset of those fields. Unknown fields and invalid values are rejected with
+`400 Bad Request`. Project IDs are validated as numbers.
+
+Responses are serialized through `ProjectResponseDto`, so repository-only
+fields never reach clients. Errors have a consistent shape with `statusCode`,
+`errorCode`, `message`, `path`, `timestamp`, and `traceId`; clients may pass an
+`x-trace-id` header to correlate a request.
+
+Data is kept in memory, so it is reset when the application restarts.
 
 ### Dependency graph
 

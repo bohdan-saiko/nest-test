@@ -12,7 +12,8 @@ export const PROJECTS_REPOSITORY = Symbol('PROJECTS_REPOSITORY');
 export interface ProjectsRepositoryPort {
   create(dto: CreateProjectDto): Project;
   findAll(): Project[];
-  findOne(id: string): Project | null;
-  update(id: string, dto: UpdateProjectDto): Project | null;
-  remove(id: string): boolean;
+  findOne(id: number): Project | null;
+  findByName(name: string): Project | null;
+  update(id: number, dto: UpdateProjectDto): Project | null;
+  remove(id: number): boolean;
 }

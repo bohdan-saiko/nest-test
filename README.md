@@ -23,6 +23,10 @@
 
 ## Projects API
 
+Practical work repository: [bohdan-saiko/nest-test](https://github.com/bohdan-saiko/nest-test).
+Swagger UI is available at [`/docs`](http://localhost:3000/docs); the generated
+OpenAPI JSON is available at [`/docs-json`](http://localhost:3000/docs-json).
+
 `ProjectsModule` exposes an in-memory CRUD API at `/projects`:
 
 | Method | Route | Action |

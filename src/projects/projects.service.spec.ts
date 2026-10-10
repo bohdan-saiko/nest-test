@@ -35,7 +35,7 @@ describe('ProjectsService', () => {
     expect(service).toBeDefined();
   });
 
-  it('delegates project creation to the repository port', () => {
+  it('delegates project creation to the repository port', async () => {
     const project: Project = {
       id: 1,
       name: 'Website',
@@ -43,15 +43,16 @@ describe('ProjectsService', () => {
       status: 'active',
       createdAt: new Date(),
     };
-    vi.mocked(repository.create).mockReturnValue(project);
+    vi.mocked(repository.findByName).mockResolvedValue(null);
+    vi.mocked(repository.create).mockResolvedValue(project);
 
-    expect(
+    await expect(
       service.create({
         name: 'Website',
         description: 'Redesign',
         status: 'active',
       }),
-    ).toMatchObject({
+    ).resolves.toMatchObject({
       id: 1,
       name: 'Website',
       description: 'Redesign',
@@ -64,24 +65,24 @@ describe('ProjectsService', () => {
     });
   });
 
-  it('throws when a project is not found', () => {
-    vi.mocked(repository.findOne).mockReturnValue(null);
+  it('throws when a project is not found', async () => {
+    vi.mocked(repository.findOne).mockResolvedValue(null);
 
-    expect(() => service.findOne(99)).toThrow(
+    await expect(service.findOne(99)).rejects.toThrow(
       'Project with id 99 was not found',
     );
   });
 
-  it('rejects a duplicate project name', () => {
-    vi.mocked(repository.findByName).mockReturnValue({
+  it('rejects a duplicate project name', async () => {
+    vi.mocked(repository.findByName).mockResolvedValue({
       id: 1,
       name: 'Website',
       status: 'active',
       createdAt: new Date(),
     });
 
-    expect(() => service.create({ name: 'Website', status: 'active' })).toThrow(
-      'Project with name Website already exists',
-    );
+    await expect(
+      service.create({ name: 'Website', status: 'active' }),
+    ).rejects.toThrow('Project with name Website already exists');
   });
 });

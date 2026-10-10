@@ -19,43 +19,42 @@ export class ProjectsService {
     private readonly projectsRepository: ProjectsRepositoryPort,
   ) {}
 
-  create(dto: CreateProjectDto): ProjectResponseDto {
-    this.ensureNameIsAvailable(dto.name);
-    return this.toResponse(this.projectsRepository.create(dto));
+  async create(dto: CreateProjectDto): Promise<ProjectResponseDto> {
+    await this.ensureNameIsAvailable(dto.name);
+    return this.toResponse(await this.projectsRepository.create(dto));
   }
 
-  findAll(): ProjectResponseDto[] {
-    return this.projectsRepository
-      .findAll()
-      .map((project) => this.toResponse(project));
+  async findAll(): Promise<ProjectResponseDto[]> {
+    const projects = await this.projectsRepository.findAll();
+    return projects.map((project) => this.toResponse(project));
   }
 
-  findOne(id: number): ProjectResponseDto {
-    const project = this.projectsRepository.findOne(id);
+  async findOne(id: number): Promise<ProjectResponseDto> {
+    const project = await this.projectsRepository.findOne(id);
     if (!project) throw this.projectNotFound(id);
     return this.toResponse(project);
   }
 
-  update(id: number, dto: UpdateProjectDto): ProjectResponseDto {
-    const existing = this.projectsRepository.findOne(id);
+  async update(id: number, dto: UpdateProjectDto): Promise<ProjectResponseDto> {
+    const existing = await this.projectsRepository.findOne(id);
     if (!existing) throw this.projectNotFound(id);
 
-    if (dto.name !== undefined) this.ensureNameIsAvailable(dto.name, id);
-    const updated = this.projectsRepository.update(id, dto);
+    if (dto.name !== undefined) await this.ensureNameIsAvailable(dto.name, id);
+    const updated = await this.projectsRepository.update(id, dto);
     if (!updated) throw this.projectNotFound(id);
     return this.toResponse(updated);
   }
 
-  remove(id: number): void {
-    const deleted = this.projectsRepository.remove(id);
+  async remove(id: number): Promise<void> {
+    const deleted = await this.projectsRepository.remove(id);
     if (!deleted) throw this.projectNotFound(id);
   }
 
-  private ensureNameIsAvailable(
+  private async ensureNameIsAvailable(
     name: string,
     excludedProjectId?: number,
-  ): void {
-    const project = this.projectsRepository.findByName(name);
+  ): Promise<void> {
+    const project = await this.projectsRepository.findByName(name);
     if (project && project.id !== excludedProjectId) {
       throw new ConflictException({
         errorCode: 'PROJECT_NAME_CONFLICT',

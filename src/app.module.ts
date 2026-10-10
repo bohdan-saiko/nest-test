@@ -4,6 +4,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { HealthModule } from './health/health.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -17,6 +18,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       serviceId: 'nest-test',
     }),
     HealthModule,
+    PrismaModule,
     ProjectsModule,
   ],
   controllers: [AppController],

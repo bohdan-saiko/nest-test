@@ -10,10 +10,10 @@ import { Project } from '../entities/project.entity.js';
 export const PROJECTS_REPOSITORY = Symbol('PROJECTS_REPOSITORY');
 
 export interface ProjectsRepositoryPort {
-  create(dto: CreateProjectDto): Project;
-  findAll(): Project[];
-  findOne(id: number): Project | null;
-  findByName(name: string): Project | null;
-  update(id: number, dto: UpdateProjectDto): Project | null;
-  remove(id: number): boolean;
+  create(dto: CreateProjectDto): Promise<Project>;
+  findAll(): Promise<Project[]>;
+  findOne(id: number): Promise<Project | null>;
+  findByName(name: string): Promise<Project | null>;
+  update(id: number, dto: UpdateProjectDto): Promise<Project | null>;
+  remove(id: number): Promise<boolean>;
 }

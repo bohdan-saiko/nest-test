@@ -70,7 +70,8 @@ export class ProjectsController {
   @Post()
   @ApiOperation({
     summary: 'Create a project',
-    description: 'Creates a project after validating its name, description, and status.',
+    description:
+      'Creates a project after validating its name, description, and status.',
   })
   @ApiBody({
     type: CreateProjectDto,
@@ -109,8 +110,8 @@ export class ProjectsController {
       },
     },
   })
-  create(@Body() dto: CreateProjectDto): ProjectResponseDto {
-    return this.projectsService.create(dto);
+  async create(@Body() dto: CreateProjectDto): Promise<ProjectResponseDto> {
+    return await this.projectsService.create(dto);
   }
 
   @Get()
@@ -124,8 +125,8 @@ export class ProjectsController {
     isArray: true,
     content: { 'application/json': { example: [projectExample] } },
   })
-  findAll(): ProjectResponseDto[] {
-    return this.projectsService.findAll();
+  async findAll(): Promise<ProjectResponseDto[]> {
+    return await this.projectsService.findAll();
   }
 
   @Get(':id')
@@ -159,8 +160,10 @@ export class ProjectsController {
       },
     },
   })
-  findOne(@Param('id', ParseIntPipe) id: number): ProjectResponseDto {
-    return this.projectsService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ProjectResponseDto> {
+    return await this.projectsService.findOne(id);
   }
 
   @Patch(':id')
@@ -172,7 +175,10 @@ export class ProjectsController {
   @ApiBody({
     type: UpdateProjectDto,
     examples: {
-      renameProject: { summary: 'Change only the name', value: { name: 'StudyFlow 2' } },
+      renameProject: {
+        summary: 'Change only the name',
+        value: { name: 'StudyFlow 2' },
+      },
     },
   })
   @ApiOkResponse({
@@ -189,13 +195,19 @@ export class ProjectsController {
     type: ApiErrorResponseDto,
     content: { 'application/json': { example: validationErrorExample } },
   })
-  @ApiNotFoundResponse({ description: 'No project exists for this ID.', type: ApiErrorResponseDto })
-  @ApiConflictResponse({ description: 'A project with this name already exists.', type: ApiErrorResponseDto })
-  update(
+  @ApiNotFoundResponse({
+    description: 'No project exists for this ID.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'A project with this name already exists.',
+    type: ApiErrorResponseDto,
+  })
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProjectDto,
-  ): ProjectResponseDto {
-    return this.projectsService.update(id, dto);
+  ): Promise<ProjectResponseDto> {
+    return await this.projectsService.update(id, dto);
   }
 
   @Delete(':id')
@@ -206,9 +218,15 @@ export class ProjectsController {
   })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiNoContentResponse({ description: 'Project deleted.' })
-  @ApiBadRequestResponse({ description: 'The ID is not a number.', type: ApiErrorResponseDto })
-  @ApiNotFoundResponse({ description: 'No project exists for this ID.', type: ApiErrorResponseDto })
-  remove(@Param('id', ParseIntPipe) id: number): void {
-    this.projectsService.remove(id);
+  @ApiBadRequestResponse({
+    description: 'The ID is not a number.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'No project exists for this ID.',
+    type: ApiErrorResponseDto,
+  })
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.projectsService.remove(id);
   }
 }

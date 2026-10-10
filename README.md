@@ -27,14 +27,14 @@ Practical work repository: [bohdan-saiko/nest-test](https://github.com/bohdan-sa
 Swagger UI is available at [`/docs`](http://localhost:3000/docs); the generated
 OpenAPI JSON is available at [`/docs-json`](http://localhost:3000/docs-json).
 
-`ProjectsModule` exposes an in-memory CRUD API at `/projects`:
+`ProjectsModule` exposes a PostgreSQL-backed CRUD API at `/projects`:
 
-| Method | Route | Action |
-| --- | --- | --- |
-| `POST` | `/projects` | Create a project |
-| `GET` | `/projects` | List projects |
-| `GET` | `/projects/:id` | Get one project |
-| `PATCH` | `/projects/:id` | Update a project |
+| Method   | Route           | Action           |
+| -------- | --------------- | ---------------- |
+| `POST`   | `/projects`     | Create a project |
+| `GET`    | `/projects`     | List projects    |
+| `GET`    | `/projects/:id` | Get one project  |
+| `PATCH`  | `/projects/:id` | Update a project |
 | `DELETE` | `/projects/:id` | Delete a project |
 
 `POST` accepts `name` (3–100 characters), optional `description` (up to 500
@@ -47,7 +47,33 @@ fields never reach clients. Errors have a consistent shape with `statusCode`,
 `errorCode`, `message`, `path`, `timestamp`, and `traceId`; clients may pass an
 `x-trace-id` header to correlate a request.
 
-Data is kept in memory, so it is reset when the application restarts.
+## PostgreSQL, migrations, and seed
+
+The full API stack runs in Docker: PostgreSQL, a one-off Prisma migration/seed
+container, and the Nest application. Docker Desktop must be running first.
+The container is published on port `5433` by default to avoid conflicting with
+an existing local PostgreSQL instance; override it through `POSTGRES_PORT`.
+
+```bash
+# Starts database, applies migrations, seeds, and starts the API.
+npm run app:up
+```
+
+Then open Swagger at [http://localhost:3000/docs](http://localhost:3000/docs).
+Use `npm run app:down` to stop the full stack. `npm run db:up` remains available
+when you want to run Nest directly on the host during development.
+
+`prisma/schema.prisma` models `Project`, `User`, `Task`, and `Membership` with
+primary keys, foreign keys, unique constraints, and indexes. The migration is
+stored in `prisma/migrations`; `prisma/seed.ts` creates two users, their
+memberships, a project, and a task. In Prisma 7 seeding is explicit, so run
+`npm run prisma:seed` whenever seed data is needed.
+
+To confirm persistence across an application restart, create a project through
+`POST /projects`, stop and start only the Nest process, then fetch it with
+`GET /projects/:id`. The Docker volume preserves PostgreSQL data. Use
+`npm run db:down` to stop the database; add `-v` manually only when its data
+should be destroyed.
 
 ### Dependency graph
 
@@ -60,7 +86,7 @@ ProjectsService (use cases and not-found handling)
     |
 ProjectsRepositoryPort / PROJECTS_REPOSITORY
     |
-InMemoryProjectsRepository (persistence adapter)
+PrismaProjectRepository (PostgreSQL persistence adapter)
 ```
 
 The controller has no persistence dependency and does not contain business

@@ -4,6 +4,37 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter.js';
+import { PROJECTS_REPOSITORY } from '../src/projects/ports/projects-repository.port.js';
+import type { ProjectsRepositoryPort } from '../src/projects/ports/projects-repository.port.js';
+import type { Project } from '../src/projects/entities/project.entity.js';
+
+const createTestRepository = (): ProjectsRepositoryPort => {
+  const projects: Project[] = [];
+  let nextId = 1;
+
+  return {
+    create: async (dto) => {
+      const project: Project = { id: nextId++, ...dto, createdAt: new Date() };
+      projects.push(project);
+      return project;
+    },
+    findAll: async () => projects,
+    findOne: async (id) =>
+      projects.find((project) => project.id === id) ?? null,
+    findByName: async (name) =>
+      projects.find((project) => project.name === name) ?? null,
+    update: async (id, dto) => {
+      const project = projects.find((item) => item.id === id);
+      return project ? Object.assign(project, dto) : null;
+    },
+    remove: async (id) => {
+      const index = projects.findIndex((project) => project.id === id);
+      if (index < 0) return false;
+      projects.splice(index, 1);
+      return true;
+    },
+  };
+};
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -11,7 +42,10 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PROJECTS_REPOSITORY)
+      .useValue(createTestRepository())
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(

@@ -52,7 +52,7 @@
     },
     "/projects": {
       "post": {
-        "description": "Creates a project after validating its name, description, and status.",
+        "description": "Creates a project and its OWNER membership in one database transaction.",
         "operationId": "ProjectsController_create",
         "parameters": [],
         "requestBody": {
@@ -68,7 +68,8 @@
                   "value": {
                     "name": "StudyFlow",
                     "description": "Система керування навчальними проєктами",
-                    "status": "active"
+                    "status": "active",
+                    "ownerId": "11111111-1111-4111-8111-111111111111"
                   }
                 }
               }
@@ -123,19 +124,100 @@
         ]
       },
       "get": {
-        "description": "Returns every project in the public response format.",
+        "description": "Returns a filtered, deterministically sorted page of public projects.",
         "operationId": "ProjectsController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "active",
+              "type": "string",
+              "enum": [
+                "draft",
+                "active",
+                "completed",
+                "archived"
+              ]
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": false,
+            "in": "query",
+            "description": "Public UUID of a project member.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "createdAt",
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "updatedAt",
+                "name"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "desc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Projects returned.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectResponseDto"
-                  }
+                  "$ref": "#/components/schemas/PaginatedProjectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A query parameter is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponseDto"
                 }
               }
             }
@@ -462,14 +544,22 @@
             "enum": [
               "draft",
               "active",
-              "completed"
+              "completed",
+              "archived"
             ],
             "example": "active"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Public UUID of the user who owns the new project.",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
           }
         },
         "required": [
           "name",
-          "status"
+          "status",
+          "ownerId"
         ]
       },
       "ProjectResponseDto": {
@@ -492,7 +582,8 @@
             "enum": [
               "draft",
               "active",
-              "completed"
+              "completed",
+              "archived"
             ],
             "example": "active"
           },
@@ -507,6 +598,61 @@
           "name",
           "status",
           "createdAt"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 2
+          },
+          "size": {
+            "type": "number",
+            "example": 10
+          },
+          "total": {
+            "type": "number",
+            "example": 35
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 4
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "example": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "total",
+          "totalPages",
+          "hasNextPage",
+          "hasPreviousPage"
+        ]
+      },
+      "PaginatedProjectResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponseDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ]
       },
       "UpdateProjectDto": {
@@ -530,9 +676,16 @@
             "enum": [
               "draft",
               "active",
-              "completed"
+              "completed",
+              "archived"
             ],
             "example": "active"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Public UUID of the user who owns the new project.",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
           }
         }
       }

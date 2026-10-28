@@ -18,13 +18,27 @@ async function main() {
   const [olena, taras] = await Promise.all([
     prisma.user.upsert({
       where: { email: 'olena@example.com' },
-      update: { displayName: 'Olena Koval' },
-      create: { email: 'olena@example.com', displayName: 'Olena Koval' },
+      update: {
+        displayName: 'Olena Koval',
+        externalId: '11111111-1111-4111-8111-111111111111',
+      },
+      create: {
+        email: 'olena@example.com',
+        displayName: 'Olena Koval',
+        externalId: '11111111-1111-4111-8111-111111111111',
+      },
     }),
     prisma.user.upsert({
       where: { email: 'taras@example.com' },
-      update: { displayName: 'Taras Melnyk' },
-      create: { email: 'taras@example.com', displayName: 'Taras Melnyk' },
+      update: {
+        displayName: 'Taras Melnyk',
+        externalId: '22222222-2222-4222-8222-222222222222',
+      },
+      create: {
+        email: 'taras@example.com',
+        displayName: 'Taras Melnyk',
+        externalId: '22222222-2222-4222-8222-222222222222',
+      },
     }),
   ]);
 
@@ -43,7 +57,7 @@ async function main() {
   });
 
   await Promise.all([
-    prisma.membership.upsert({
+    prisma.projectMembership.upsert({
       where: { projectId_userId: { projectId: project.id, userId: olena.id } },
       update: { role: MembershipRole.owner },
       create: {
@@ -52,7 +66,7 @@ async function main() {
         role: MembershipRole.owner,
       },
     }),
-    prisma.membership.upsert({
+    prisma.projectMembership.upsert({
       where: { projectId_userId: { projectId: project.id, userId: taras.id } },
       update: { role: MembershipRole.member },
       create: {

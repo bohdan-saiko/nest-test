@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
   ParseIntPipe,
   HttpCode,
   HttpStatus,
@@ -28,6 +29,8 @@ import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { ProjectResponseDto } from './dto/project-response.dto.js';
 import { ApiErrorResponseDto } from '../common/dto/api-error-response.dto.js';
+import { ProjectListQueryDto } from './dto/project-list-query.dto.js';
+import { PaginatedProjectResponseDto } from './dto/paginated-project-response.dto.js';
 
 const projectExample = {
   id: 1,
@@ -71,7 +74,7 @@ export class ProjectsController {
   @ApiOperation({
     summary: 'Create a project',
     description:
-      'Creates a project after validating its name, description, and status.',
+      'Creates a project and its OWNER membership in one database transaction.',
   })
   @ApiBody({
     type: CreateProjectDto,
@@ -82,6 +85,7 @@ export class ProjectsController {
           name: 'StudyFlow',
           description: 'Система керування навчальними проєктами',
           status: 'active',
+          ownerId: '11111111-1111-4111-8111-111111111111',
         },
       },
     },
@@ -117,16 +121,37 @@ export class ProjectsController {
   @Get()
   @ApiOperation({
     summary: 'List all projects',
-    description: 'Returns every project in the public response format.',
+    description:
+      'Returns a filtered, deterministically sorted page of public projects.',
   })
   @ApiOkResponse({
     description: 'Projects returned.',
-    type: ProjectResponseDto,
-    isArray: true,
-    content: { 'application/json': { example: [projectExample] } },
+    type: PaginatedProjectResponseDto,
+    content: {
+      'application/json': {
+        example: {
+          data: [projectExample],
+          meta: {
+            page: 1,
+            size: 10,
+            total: 1,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+      },
+    },
   })
-  async findAll(): Promise<ProjectResponseDto[]> {
-    return await this.projectsService.findAll();
+  @ApiBadRequestResponse({
+    description: 'A query parameter is invalid.',
+    type: ApiErrorResponseDto,
+    content: { 'application/json': { example: validationErrorExample } },
+  })
+  async findAll(
+    @Query() query: ProjectListQueryDto,
+  ): Promise<PaginatedProjectResponseDto> {
+    return await this.projectsService.findAll(query);
   }
 
   @Get(':id')

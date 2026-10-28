@@ -11,6 +11,7 @@ enum ProjectStatus {
   draft
   active
   completed
+  archived
 }
 
 enum MembershipRole {
@@ -34,19 +35,20 @@ model Project {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   tasks        Task[]
-  memberships  Membership[]
+  memberships  ProjectMembership[]
 
-  @@index([status])
+  @@index([status, createdAt, id])
   @@index([deletedAt])
 }
 
 model User {
   id          Int          @id @default(autoincrement())
+  externalId  String       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email       String       @unique @db.VarChar(320)
   displayName String       @db.VarChar(100)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  memberships Membership[]
+  memberships ProjectMembership[]
   tasks       Task[]       @relation("AssignedTasks")
 }
 
@@ -67,7 +69,7 @@ model Task {
   @@index([assigneeId])
 }
 
-model Membership {
+model ProjectMembership {
   projectId Int
   userId    Int
   role      MembershipRole @default(member)

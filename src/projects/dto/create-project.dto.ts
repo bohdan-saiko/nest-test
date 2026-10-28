@@ -4,6 +4,7 @@ import {
   IsString,
   Length,
   MaxLength,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectStatus } from './project-status.enum.js';
@@ -32,4 +33,12 @@ export class CreateProjectDto {
   @ApiProperty({ enum: ProjectStatus, example: ProjectStatus.Active })
   @IsEnum(ProjectStatus)
   status: ProjectStatus;
+
+  @ApiProperty({
+    description: 'Public UUID of the user who owns the new project.',
+    format: 'uuid',
+    example: '11111111-1111-4111-8111-111111111111',
+  })
+  @IsUUID('4')
+  ownerId: string;
 }

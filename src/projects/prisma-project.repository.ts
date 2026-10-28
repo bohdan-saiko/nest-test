@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
+import type {
   Project as PrismaProject,
   ProjectStatus as PrismaProjectStatus,
+  Prisma,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto } from './dto/create-project.dto.js';
@@ -9,28 +10,61 @@ import { ProjectStatus } from './dto/project-status.enum.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { Project } from './entities/project.entity.js';
 import { ProjectsRepositoryPort } from './ports/projects-repository.port.js';
+import {
+  ProjectListQueryDto,
+} from './dto/project-list-query.dto.js';
+import type { ProjectListResult } from './ports/projects-repository.port.js';
 
 @Injectable()
 export class PrismaProjectRepository implements ProjectsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateProjectDto): Promise<Project> {
-    const project = await this.prisma.project.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        status: dto.status as PrismaProjectStatus,
-      },
+    const project = await this.prisma.$transaction(async (tx) => {
+      const createdProject = await tx.project.create({
+        data: {
+          name: dto.name,
+          description: dto.description,
+          status: dto.status as PrismaProjectStatus,
+        },
+      });
+
+      await tx.projectMembership.create({
+        data: {
+          role: 'owner',
+          project: { connect: { id: createdProject.id } },
+          user: { connect: { externalId: dto.ownerId } },
+        },
+      });
+
+      return createdProject;
     });
     return this.toDomain(project);
   }
 
-  async findAll(): Promise<Project[]> {
-    const projects = await this.prisma.project.findMany({
-      where: { deletedAt: null },
-      orderBy: { id: 'asc' },
-    });
-    return projects.map((project) => this.toDomain(project));
+  async findAll(query: ProjectListQueryDto): Promise<ProjectListResult> {
+    const where: Prisma.ProjectWhereInput = {
+      deletedAt: null,
+      ...(query.status ? { status: query.status as PrismaProjectStatus } : {}),
+      ...(query.assigneeId
+        ? { memberships: { some: { user: { externalId: query.assigneeId } } } }
+        : {}),
+    };
+    const orderBy: Prisma.ProjectOrderByWithRelationInput[] = [
+      { [query.sort]: query.order },
+      { id: query.order },
+    ];
+    const skip = (query.page - 1) * query.size;
+
+    const [projects, total] = await this.prisma.$transaction([
+      this.prisma.project.findMany({ where, orderBy, skip, take: query.size }),
+      this.prisma.project.count({ where }),
+    ]);
+
+    return {
+      projects: projects.map((project) => this.toDomain(project)),
+      total,
+    };
   }
 
   async findOne(id: number): Promise<Project | null> {

@@ -29,18 +29,37 @@ OpenAPI JSON is available at [`/docs-json`](http://localhost:3000/docs-json).
 
 `ProjectsModule` exposes a PostgreSQL-backed CRUD API at `/projects`:
 
-| Method   | Route           | Action           |
-| -------- | --------------- | ---------------- |
-| `POST`   | `/projects`     | Create a project |
-| `GET`    | `/projects`     | List projects    |
-| `GET`    | `/projects/:id` | Get one project  |
-| `PATCH`  | `/projects/:id` | Update a project |
-| `DELETE` | `/projects/:id` | Delete a project |
+| Method   | Route           | Action                                              |
+| -------- | --------------- | --------------------------------------------------- |
+| `POST`   | `/projects`     | Create a project                                    |
+| `GET`    | `/projects`     | List projects with pagination, filters, and sorting |
+| `GET`    | `/projects/:id` | Get one project                                     |
+| `PATCH`  | `/projects/:id` | Update a project                                    |
+| `DELETE` | `/projects/:id` | Delete a project                                    |
 
 `POST` accepts `name` (3–100 characters), optional `description` (up to 500
-characters), and `status` (`draft`, `active`, or `completed`). `PATCH` accepts
-any subset of those fields. Unknown fields and invalid values are rejected with
-`400 Bad Request`. Project IDs are validated as numbers.
+characters), `status` (`draft`, `active`, `completed`, or `archived`), and an
+`ownerId` UUID. The owner is linked through a `ProjectMembership` record with
+the `owner` role in the same database transaction. `PATCH` accepts any subset
+of the editable project fields. Unknown fields and invalid values are rejected
+with `400 Bad Request`. Project IDs are validated as numbers.
+
+`GET /projects` accepts these query parameters:
+
+| Parameter    | Default     | Rules                                                            |
+| ------------ | ----------- | ---------------------------------------------------------------- |
+| `page`       | `1`         | integer >= 1                                                     |
+| `size`       | `10`        | integer from 1 to 100                                            |
+| `status`     | —           | `draft`, `active`, `completed`, or `archived` (case-insensitive) |
+| `assigneeId` | —           | UUID of a project member                                         |
+| `sort`       | `createdAt` | `createdAt`, `updatedAt`, or `name`                              |
+| `order`      | `desc`      | `asc` or `desc`                                                  |
+
+The list result is `{ data, meta }`. `meta` contains the effective page and
+size, `total`, `totalPages`, `hasNextPage`, and `hasPreviousPage`. Sorting
+always adds `id` as a tie-breaker, so page boundaries remain deterministic.
+
+Example: `GET /projects?page=1&size=5&status=ACTIVE&sort=name&order=asc`.
 
 Responses are serialized through `ProjectResponseDto`, so repository-only
 fields never reach clients. Errors have a consistent shape with `statusCode`,
@@ -63,7 +82,7 @@ Then open Swagger at [http://localhost:3000/docs](http://localhost:3000/docs).
 Use `npm run app:down` to stop the full stack. `npm run db:up` remains available
 when you want to run Nest directly on the host during development.
 
-`prisma/schema.prisma` models `Project`, `User`, `Task`, and `Membership` with
+`prisma/schema.prisma` models `Project`, `User`, `Task`, and `ProjectMembership` with
 primary keys, foreign keys, unique constraints, and indexes. The migration is
 stored in `prisma/migrations`; `prisma/seed.ts` creates two users, their
 memberships, a project, and a task. In Prisma 7 seeding is explicit, so run
@@ -74,6 +93,7 @@ To confirm persistence across an application restart, create a project through
 `GET /projects/:id`. The Docker volume preserves PostgreSQL data. Use
 `npm run db:down` to stop the database; add `-v` manually only when its data
 should be destroyed.
+
 
 ### Dependency graph
 
@@ -110,19 +130,6 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
 
 ## Deployment

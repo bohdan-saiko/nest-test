@@ -11,6 +11,8 @@ import { PROJECTS_REPOSITORY } from './ports/projects-repository.port.js';
 import type { ProjectsRepositoryPort } from './ports/projects-repository.port.js';
 import { ProjectResponseDto } from './dto/project-response.dto.js';
 import { Project } from './entities/project.entity.js';
+import { ProjectListQueryDto } from './dto/project-list-query.dto.js';
+import { PaginatedProjectResponseDto } from './dto/paginated-project-response.dto.js';
 
 @Injectable()
 export class ProjectsService {
@@ -24,9 +26,23 @@ export class ProjectsService {
     return this.toResponse(await this.projectsRepository.create(dto));
   }
 
-  async findAll(): Promise<ProjectResponseDto[]> {
-    const projects = await this.projectsRepository.findAll();
-    return projects.map((project) => this.toResponse(project));
+  async findAll(
+    query: ProjectListQueryDto,
+  ): Promise<PaginatedProjectResponseDto> {
+    const { projects, total } = await this.projectsRepository.findAll(query);
+    const totalPages = Math.ceil(total / query.size);
+
+    return {
+      data: projects.map((project) => this.toResponse(project)),
+      meta: {
+        page: query.page,
+        size: query.size,
+        total,
+        totalPages,
+        hasNextPage: query.page < totalPages,
+        hasPreviousPage: query.page > 1,
+      },
+    };
   }
 
   async findOne(id: number): Promise<ProjectResponseDto> {

@@ -21,13 +21,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const traceId = request.header('x-trace-id') ?? randomUUID();
 
-    const httpException =
-      exception instanceof HttpException
-        ? exception
-        : new HttpException(
-            'Internal server error',
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
+    const httpException = this.toHttpException(exception);
     const statusCode = httpException.getStatus();
     const exceptionResponse = httpException.getResponse();
     const details =
@@ -47,6 +41,57 @@ export class HttpExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString(),
         traceId,
       });
+  }
+
+  private toHttpException(exception: unknown): HttpException {
+    if (exception instanceof HttpException) return exception;
+
+    if (this.isPrismaError(exception, 'P2002')) {
+      const target = exception.meta?.target;
+      const isMembershipConflict =
+        Array.isArray(target) &&
+        target.includes('projectId') &&
+        target.includes('userId');
+
+      return new HttpException(
+        {
+          errorCode: isMembershipConflict
+            ? 'MEMBERSHIP_ALREADY_EXISTS'
+            : 'PROJECT_NAME_CONFLICT',
+          message: isMembershipConflict
+            ? 'User is already a project member'
+            : 'Project with this name already exists',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    if (this.isPrismaError(exception, 'P2025')) {
+      return new HttpException(
+        {
+          errorCode: 'OWNER_NOT_FOUND',
+          message: 'Owner was not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return new HttpException(
+      'Internal server error',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  private isPrismaError(
+    exception: unknown,
+    code: string,
+  ): exception is { code: string; meta?: { target?: unknown } } {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'code' in exception &&
+      exception.code === code
+    );
   }
 
   private errorCodeFor(
